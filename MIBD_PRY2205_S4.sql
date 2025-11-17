@@ -1721,7 +1721,49 @@ HAVING SUM(NVL(tcon.monto_ticket, 0))>50000
 ORDER BY SUM(NVL(tcon.monto_ticket, 0)) DESC;
 
 -- Caso 3: Listado bonificaciones
+SELECT 
 
+    TO_CHAR(t.numrut, '99G999G999')                                                 AS "RUT Trabajador",
+    INITCAP(t.nombre) || ' ' || INITCAP(t.appaterno)                                AS "Nombre Trabajador",
+    LPAD(TO_CHAR(t.fecing, 'YYYY'), 15, ' ')                                        AS "AÑO INGRESO",
+    FLOOR(MONTHS_BETWEEN(SYSDATE, t.fecing) / 12)                                   AS "AÑOS ANTIGÜEDAD",
+    COUNT(af.numrut_carga)                                                          AS "NUM. CARGAS FAMILIARES",
+    INITCAP(SUBSTR(i.nombre_isapre, 1, 10))                                         AS "SISTEMA SALUD",
+    TO_CHAR(t.sueldo_base, '$999,999,999')                                          AS "SUELDO BASE",
+
+    CASE 
+        WHEN UPPER(i.nombre_isapre) = 'FONASA' THEN 
+            TO_CHAR(t.sueldo_base * 0.01, '$999,999,999')
+        ELSE LPAD('$0', 13, ' ')
+    END AS "BONO FONASA",
+    CASE 
+        WHEN FLOOR(MONTHS_BETWEEN(SYSDATE, t.fecing) / 12) <= 10 THEN 
+            TO_CHAR(t.sueldo_base * 0.10, '$999,999,999')
+        ELSE 
+            TO_CHAR(t.sueldo_base * 0.15, '$999,999,999')
+    END AS "BONO ANTIGÜEDAD",
+    INITCAP(a.nombre_afp) AS "NOMBRE AFP",
+    UPPER(SUBSTR(ec.desc_estcivil, 1, 10)) AS "ESTADO CIVIL"
+FROM trabajador t
+JOIN isapre i ON t.cod_isapre = i.cod_isapre
+JOIN afp a ON t.cod_afp = a.cod_afp
+LEFT JOIN asignacion_familiar af ON t.numrut = af.numrut_t
+JOIN est_civil est ON t.numrut = est.numrut_t
+JOIN estado_civil ec ON est.id_estcivil_est = ec.id_estcivil
+WHERE est.fecter_estcivil IS NULL 
+   OR est.fecter_estcivil > SYSDATE
+GROUP BY 
+    t.numrut, 
+    t.dvrut, 
+    t.nombre, 
+    t.appaterno, 
+    t.apmaterno, 
+    t.fecing, 
+    t.sueldo_base, 
+    i.nombre_isapre, 
+    a.nombre_afp, 
+    ec.desc_estcivil
+ORDER BY t.numrut ASC;
 
 
 
